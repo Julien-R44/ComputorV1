@@ -6,7 +6,7 @@
 /*   By: y0ja <y0ja@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2015/09/27 00:23:24 by y0ja              #+#    #+#             */
-/*   Updated: 2015/10/24 03:09:55 by y0ja             ###   ########.fr       */
+/*   Updated: 2015/10/24 04:56:31 by y0ja             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,8 +79,11 @@ function makeArray(array) {
 }
 
 function displayEqu(eq1, eq2) {
+	// First Syntax
 	process.stdout.write("Reduced form: ");
 	eq1.forEach(function(element, index) {
+		if (element.number == 0)
+			return ;
 		if (index == 0 && element.number < 0)
 			process.stdout.write('-');
 		process.stdout.write(ft_abs(element.number) + " * X" + element.power + " ");
@@ -89,8 +92,11 @@ function displayEqu(eq1, eq2) {
 		else if (eq1[index+1])
 			process.stdout.write('- ');
 	});
+	// Other Syntax
 	process.stdout.write('= 0\nOther syntax: ');
 	eq1.forEach(function(element, index) {
+		if (element.number == 0)
+			return ;
 		if (index == 0 && element.number < 0)
 			process.stdout.write('-');
 		if (element.power == '^0')
@@ -110,11 +116,7 @@ function displayEqu(eq1, eq2) {
 
 function checkSyntax(array, maxlen) {
 	var len = 0;
-
-	// console.log('FDP');
-	array.forEach(function(element, index) {
-		len += element.length;
-	});
+	array.forEach(function(element, index) { len += element.length; });
 	if (len != maxlen)
 		ft_error('Syntax Error.');
 }
@@ -122,11 +124,14 @@ function checkSyntax(array, maxlen) {
 function regroupTerms(left) {
 	var i, j;
 
+	left.push({number: 0, power: '^0'}, {number: 0, power: '^1'}, {number: 0, power: '^2'});
 	for (i = 0; i < left.length; i++) {
+		console.log('---------------');
+		console.log(left);
 		for (j = 0; j < left.length; j++ ) {
 			if (left[j].power == left[i].power && i != j) {
 				left[j].number += left[i].number;
-				left.splice(i, i);
+				left.splice(i, 1);
 			}
 		};
 	};
@@ -152,8 +157,6 @@ function reduceEqu(array) {
 	tab[1] = array[1].match(/((\+|-)?\d+(\.\d+)?((\*X\^\d)|X)?)/gi);
 
 	// Syntax Checker
-	// console.log(array[0]);
-	// console.log(array[1]);
 	checkSyntax(tab[0], array[0].length);
 	checkSyntax(tab[1], array[1].length);
 
@@ -206,6 +209,7 @@ function solveEqu_LvlOne(equ) {
 }
 
 function solveEqu_LvlTwo(equ) {
+	console.log(equ);
 	var delta = (equ[1].number * equ[1].number) - 4 * equ[2].number * equ[0].number;
 	if (delta > 0) {
 		console.log("Discriminant [", delta, "] is strictly positive, the two solutions are:");
@@ -215,7 +219,10 @@ function solveEqu_LvlTwo(equ) {
 		console.log("Discriminant is zero, the only solution is:");
 		console.log(-equ[1].number / (2 * equ[2].number));
 	} else {
-		console.log("Discriminant [", delta, "] is negative, there is no solution.")
+		console.log("Discriminant [", delta, "] is negative, there is no solution in R.")
+		console.log("However, there is two complex solutions:");
+		console.log('(' + equ[1].number + ' - i√' + -delta + ') / ' + (2 * equ[2].number));
+		console.log('(' + equ[1].number + ' + i√' + -delta + ') / ' + (2 * equ[2].number));
 	}
 }
 
