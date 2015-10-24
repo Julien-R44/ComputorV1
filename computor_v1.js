@@ -6,7 +6,7 @@
 /*   By: y0ja <y0ja@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2015/09/27 00:23:24 by y0ja              #+#    #+#             */
-/*   Updated: 2015/10/23 04:53:49 by y0ja             ###   ########.fr       */
+/*   Updated: 2015/10/24 03:09:55 by y0ja             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,10 +44,8 @@ function getDegree(array) {
 	var ret = 0;
 
 	array.forEach(function(element, index) {
-		for (var i = 0; i < element.length; i++) {
-			if (element[i] === '^' && !isNaN(element[i+1]) && element[i+1] > ret)
-				ret = element[i+1];
-		}
+		if (element.power[+1] > ret)
+			ret = element.power[+1];
 	});
 	return (ret);
 }
@@ -63,8 +61,15 @@ function makeArray(array) {
 
 	array.forEach(function(element, index) {
 		number = parseFloat(element.match(/(\+|-)?\d+(\.\d+)?/)[0]);
-		if (!(power = element.match(/\^\d/)))
-			ft_error('Power bad formated.');
+		power = element.match(/\^\d/);
+		if (!power)	{
+			if (!isNaN(element))
+				power = ['^0'];
+			else if (element.match(/(\+|-)?\d+X/i))
+				power = ['^1']
+			else
+				ft_error('Power bad formated.');
+		}
 		newArray[index] = {
 			number: number,
 			power: power[0]
@@ -76,7 +81,24 @@ function makeArray(array) {
 function displayEqu(eq1, eq2) {
 	process.stdout.write("Reduced form: ");
 	eq1.forEach(function(element, index) {
+		if (index == 0 && element.number < 0)
+			process.stdout.write('-');
 		process.stdout.write(ft_abs(element.number) + " * X" + element.power + " ");
+		if (eq1[index+1] && eq1[index+1].number >= 0)
+			process.stdout.write('+ ');
+		else if (eq1[index+1])
+			process.stdout.write('- ');
+	});
+	process.stdout.write('= 0\nOther syntax: ');
+	eq1.forEach(function(element, index) {
+		if (index == 0 && element.number < 0)
+			process.stdout.write('-');
+		if (element.power == '^0')
+			process.stdout.write(ft_abs(element.number) + ' ');
+		else if (element.power == '^1')
+			process.stdout.write(ft_abs(element.number) + 'x ');
+		else if (element.power == '^2')
+			process.stdout.write(ft_abs(element.number) + 'x² ');
 		if (eq1[index+1] && eq1[index+1].number >= 0)
 			process.stdout.write('+ ');
 		else if (eq1[index+1])
@@ -86,22 +108,82 @@ function displayEqu(eq1, eq2) {
 	console.log();
 }
 
+function checkSyntax(array, maxlen) {
+	var len = 0;
+
+	// console.log('FDP');
+	array.forEach(function(element, index) {
+		len += element.length;
+	});
+	if (len != maxlen)
+		ft_error('Syntax Error.');
+}
+
+function regroupTerms(left) {
+	var i, j;
+
+	for (i = 0; i < left.length; i++) {
+		for (j = 0; j < left.length; j++ ) {
+			if (left[j].power == left[i].power && i != j) {
+				left[j].number += left[i].number;
+				left.splice(i, i);
+			}
+		};
+	};
+}
+
+function ascendingSortPower(left) {
+	var i, j, tmp;
+
+	for (i = 0; i < left.length; i++) {
+		for (j = i; left[j+1] && left[j].power > left[j+1].power; j++) {
+			left[j+1] = [left[j], left[j] = left[j+1]][0];
+		};
+	};
+}
+
 function reduceEqu(array) {
 	var left, right;
-	var j = 0;
+	var tab = [], j = 0;
 
-	if (!array[0] || !array[1])
+	if (array.length != 2)
 		ft_error('Polynome needs two parts.');
-	left = makeArray(array[0].match(/((\+|-)?\d+(\.\d+)?(\*X\^\d)?)/g));
-	right = makeArray(array[1].match(/((\+|-)?\d+(\.\d+)?(\*X\^\d)?)/g));
+	tab[0] = array[0].match(/((\+|-)?\d+(\.\d+)?((\*X\^\d)|X)?)/gi);
+	tab[1] = array[1].match(/((\+|-)?\d+(\.\d+)?((\*X\^\d)|X)?)/gi);
+
+	// Syntax Checker
+	// console.log(array[0]);
+	// console.log(array[1]);
+	checkSyntax(tab[0], array[0].length);
+	checkSyntax(tab[1], array[1].length);
+
+	// Make Objects {nb, power} for each parts of polynome
+	left  = makeArray(tab[0]);
+	right = makeArray(tab[1]);
+
+	// Reduce Equ
 	right.forEach(function(element, index) {
 		j = 0;
 		while (left[j] && element.power != left[j].power)
 			j++;
-		left[j].number -= element.number;
+		if (!left[j])
+			left[j] = {number: -(element.number), power: element.power};
+		else
+			left[j].number -= element.number;
 	});
-	right = [];
-	return ({left: left, right: right});
+
+	// Clean Up
+	regroupTerms(left);
+	ascendingSortPower(left);
+
+	return ({left: left, right: []});
+}
+
+function solveEqu_LvlZero(equ) {
+	if (equ.left[0].number != 0)
+		console.log('No Solution.')
+	else
+		console.log('All real numbers are solutions.');
 }
 
 function solveEqu_LvlOne(equ) {
@@ -113,20 +195,27 @@ function solveEqu_LvlOne(equ) {
 		}
 	});
 	process.stdout.write("Solution : ");
-	console.log(equ.right[equ.right.length-1].number / equ.left[equ.left.length-1].number);
+	if (equ.left[equ.left.length-1].number == 0)
+		console.log('All real numbers are solutions.');
+	else {
+		if (equ.right.length - 1 == -1)
+			console.log('No Solution.');
+		else
+			console.log(equ.right[equ.right.length-1].number / equ.left[equ.left.length-1].number);
+	}
 }
 
 function solveEqu_LvlTwo(equ) {
 	var delta = (equ[1].number * equ[1].number) - 4 * equ[2].number * equ[0].number;
 	if (delta > 0) {
-		console.log("Discriminant is strictly positive, the two solutions are:");
+		console.log("Discriminant [", delta, "] is strictly positive, the two solutions are:");
 		console.log((-equ[1].number - ft_sqrt(delta)) / (2 * equ[2].number));
 		console.log((-equ[1].number + ft_sqrt(delta)) / (2 * equ[2].number));
 	} else if (delta == 0) {
 		console.log("Discriminant is zero, the only solution is:");
 		console.log(-equ[1].number / (2 * equ[2].number));
 	} else {
-		console.log("Discriminant is negative, there is no solution.")
+		console.log("Discriminant [", delta, "] is negative, there is no solution.")
 	}
 }
 
@@ -138,11 +227,13 @@ if (process.argv.length != 3) {
 
 var array = process.argv[2].split(' ').join('').split('=');
 var reducedEqu = reduceEqu(array);
-var degree = getDegree(array);
+var degree = getDegree(reducedEqu.left);
 
 displayEqu(reducedEqu.left, reducedEqu.right);
 console.log("Polynomial degree: " + degree);
-if (degree == 1)
+if (degree == 0)
+	solveEqu_LvlZero(reducedEqu);
+else if (degree == 1)
 	solveEqu_LvlOne(reducedEqu);
 else if (degree == 2)
 	solveEqu_LvlTwo(reducedEqu.left);
