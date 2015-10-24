@@ -6,7 +6,7 @@
 /*   By: y0ja <y0ja@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2015/09/27 00:23:24 by y0ja              #+#    #+#             */
-/*   Updated: 2015/10/24 04:56:31 by y0ja             ###   ########.fr       */
+/*   Updated: 2015/10/24 22:40:19 by y0ja             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,7 +44,7 @@ function getDegree(array) {
 	var ret = 0;
 
 	array.forEach(function(element, index) {
-		if (element.power[+1] > ret)
+		if (element.number != 0 && element.power[+1] > ret)
 			ret = element.power[+1];
 	});
 	return (ret);
@@ -78,40 +78,35 @@ function makeArray(array) {
 	return (newArray);
 }
 
+function displayIterFunc(element, index, other) {
+	if (element.number == 0)
+		return ;
+	if (element.number < 0)
+		process.stdout.write('- ');
+	if (element.number > 0 && index != 0)
+		process.stdout.write('+ ');
+	if (other == 1) {
+		process.stdout.write(String(ft_abs(element.number)));
+		if (element.power == '^1')
+			process.stdout.write('x');
+		if (element.power == '^2')
+			process.stdout.write('x²');
+		if (element.power == '^3')
+			process.stdout.write('x³');
+		process.stdout.write(' ');
+	} else {
+		process.stdout.write(ft_abs(element.number) + " * X" + element.power + " ");
+	}
+}
+
 function displayEqu(eq1, eq2) {
 	// First Syntax
 	process.stdout.write("Reduced form: ");
-	eq1.forEach(function(element, index) {
-		if (element.number == 0)
-			return ;
-		if (index == 0 && element.number < 0)
-			process.stdout.write('-');
-		process.stdout.write(ft_abs(element.number) + " * X" + element.power + " ");
-		if (eq1[index+1] && eq1[index+1].number >= 0)
-			process.stdout.write('+ ');
-		else if (eq1[index+1])
-			process.stdout.write('- ');
-	});
+	eq1.forEach(function(element, index) { displayIterFunc(element, index, 0); });
 	// Other Syntax
 	process.stdout.write('= 0\nOther syntax: ');
-	eq1.forEach(function(element, index) {
-		if (element.number == 0)
-			return ;
-		if (index == 0 && element.number < 0)
-			process.stdout.write('-');
-		if (element.power == '^0')
-			process.stdout.write(ft_abs(element.number) + ' ');
-		else if (element.power == '^1')
-			process.stdout.write(ft_abs(element.number) + 'x ');
-		else if (element.power == '^2')
-			process.stdout.write(ft_abs(element.number) + 'x² ');
-		if (eq1[index+1] && eq1[index+1].number >= 0)
-			process.stdout.write('+ ');
-		else if (eq1[index+1])
-			process.stdout.write('- ');
-	});
-	process.stdout.write('= 0');
-	console.log();
+	eq1.forEach(function(element, index) { displayIterFunc(element, index, 1); });
+	console.log('= 0');
 }
 
 function checkSyntax(array, maxlen) {
@@ -126,12 +121,11 @@ function regroupTerms(left) {
 
 	left.push({number: 0, power: '^0'}, {number: 0, power: '^1'}, {number: 0, power: '^2'});
 	for (i = 0; i < left.length; i++) {
-		console.log('---------------');
-		console.log(left);
-		for (j = 0; j < left.length; j++ ) {
-			if (left[j].power == left[i].power && i != j) {
+		for (j = i+1; j < left.length; j++) {
+			if (left[i] && left[j] && left[j].power == left[i].power && i != j) {
 				left[j].number += left[i].number;
 				left.splice(i, 1);
+				i--;
 			}
 		};
 	};
@@ -209,7 +203,6 @@ function solveEqu_LvlOne(equ) {
 }
 
 function solveEqu_LvlTwo(equ) {
-	console.log(equ);
 	var delta = (equ[1].number * equ[1].number) - 4 * equ[2].number * equ[0].number;
 	if (delta > 0) {
 		console.log("Discriminant [", delta, "] is strictly positive, the two solutions are:");
